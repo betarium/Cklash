@@ -44,19 +44,30 @@ namespace Cklash
             {
             }
 
-            public MessageCacheInfo(MessageInfo info)
+            public MessageCacheInfo(MessageInfo source)
             {
-                Type = info.Type;
-                User = info.User;
-                Username = info.Username;
-                Text = info.Text;
-                Ts = info.Ts;
-                TsTimestamp = info.TsTimestamp;
-                IconsImage48 = info.IconsImage48;
-                Attachments = info.Attachments;
+                //Type = info.Type;
+                //User = info.User;
+                //BotId = info.BotId;
+                //Username = info.Username;
+                //Text = info.Text;
+                //Ts = info.Ts;
+                //TsTimestamp = info.TsTimestamp;
+                //IconsImage48 = info.IconsImage48;
+                //Icons = info.Icons;
+                //Attachments = info.Attachments;
 
-                DisplayText = info.Text;
-                DisplayRealName = info.Username;
+                //DisplayText = info.Text;
+                //DisplayRealName = info.Username;
+                CopyFrom(source);
+            }
+
+            public override void CopyFrom(MessageInfo source)
+            {
+                base.CopyFrom(source);
+                Username = source.Username;
+                DisplayText = source.Text ?? "";
+                DisplayRealName = source.Username;
             }
         }
 
@@ -95,6 +106,7 @@ namespace Cklash
             List<SlackApi.UserObject> userList = Users.List();
             foreach (var item in userList)
             {
+                System.Diagnostics.Debug.WriteLine("user: id=" + item.Id + " name=" + item.Name);
                 userMap.Add(item.Id, new UserCacheObject(item));
             }
             foreach (var item in userMap.Values)
@@ -268,7 +280,7 @@ namespace Cklash
                 {
                     continue;
                 }
-                //reloadChannelOldest = resultObj.Latest;
+
                 List<SlackApi.MessageInfo> tempList2 = resultObj.Messages;
 
                 foreach (var item in tempList2)
@@ -314,21 +326,49 @@ namespace Cklash
                 {
                     item.IconKey = item.UserDetail.IconKey;
                 }
-                else if (item.UserDetail == null && !string.IsNullOrEmpty(item.IconsImage48))
+                else if (item.UserDetail == null && item.Icons != null)
                 {
-                    if (UserIconList.Images.ContainsKey(item.IconsImage48))
+                    string iconUrl = item.Icons.Image48;
+                    if (string.IsNullOrEmpty(iconUrl))
                     {
-                        item.IconKey = item.IconsImage48;
+                        iconUrl = item.Icons.Image64;
                     }
-                    else
+
+                    if (!string.IsNullOrEmpty(iconUrl))
                     {
-                        Image icon = LoadIcon(item.IconsImage48, IconCacheDir);
-                        if (icon != null)
+                        if (UserIconList.Images.ContainsKey(iconUrl))
                         {
-                            UserIconList.Images.Add(item.IconsImage48, icon);
-                            item.IconKey = item.IconsImage48;
+                            item.IconKey = iconUrl;
+                        }
+                        else
+                        {
+                            Image icon = LoadIcon(iconUrl, IconCacheDir);
+                            if (icon != null)
+                            {
+                                UserIconList.Images.Add(iconUrl, icon);
+                                item.IconKey = iconUrl;
+                            }
                         }
                     }
+
+                    //if (UserIconList.Images.ContainsKey(item.IconsImage48))
+                    //{
+                    //    item.IconKey = item.IconsImage48;
+                    //}
+                    //else
+                    //{
+                    //    Image icon = LoadIcon(item.IconsImage48, IconCacheDir);
+                    //    if (icon != null)
+                    //    {
+                    //        UserIconList.Images.Add(item.IconsImage48, icon);
+                    //        item.IconKey = item.IconsImage48;
+                    //    }
+                    //}
+                }
+
+                if (item.DisplayText == null)
+                {
+                    continue;
                 }
 
                 MatchCollection matches = regex.Matches(item.DisplayText);
@@ -389,13 +429,13 @@ namespace Cklash
             }
             buffer.Append("]");
 
-            string dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            dir = Path.Combine(dir, Application.ProductName);
-            if (!Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-            }
-            dir = Application.StartupPath;
+            //string dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            //dir = Path.Combine(dir, Application.ProductName);
+            //if (!Directory.Exists(dir))
+            //{
+            //    Directory.CreateDirectory(dir);
+            //}
+            string dir = Application.StartupPath;
             string path = Path.Combine(dir, "message.json");
             File.WriteAllText(path, buffer.ToString(), Encoding.Default);
         }

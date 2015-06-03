@@ -11,6 +11,7 @@ using System.IO;
 using System.Diagnostics;
 using Library;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace Cklash
 {
@@ -37,7 +38,24 @@ namespace Cklash
             Slack.ClientSecret = Properties.Settings.Default.ClientSecret;
             Slack.AccessToken = Properties.Settings.Default.AccessToken;
 
-            Slack.IconCacheDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "~IconCache");
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.UserClientId))
+            {
+                Slack.ClientId = Properties.Settings.Default.UserClientId;
+            }
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.UserClientSecret))
+            {
+                Slack.ClientSecret = Properties.Settings.Default.UserClientSecret;
+            }
+            System.Diagnostics.Debug.Assert(!string.IsNullOrEmpty(Slack.ClientId));
+
+            string appdataDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            appdataDir = Path.Combine(appdataDir, Application.ProductName);
+            if (!Directory.Exists(appdataDir))
+            {
+                Directory.CreateDirectory(appdataDir);
+            }
+
+            Slack.IconCacheDir = Path.Combine(appdataDir, "~IconCache");
             if (!Directory.Exists(Slack.IconCacheDir))
             {
                 Directory.CreateDirectory(Slack.IconCacheDir);
@@ -330,7 +348,7 @@ namespace Cklash
             {
                 return;
             }
-            PostText.Text = "<@" + message.UserDetail.Id + "|" + message.UserDetail.Name + ">: ";
+            PostText.Text = "@" + message.UserDetail.Name + ": ";
 
             string channel = item.SubItems[columnHeader3.Index].Text;
             for (int i = 0; i < ChanellCombo.Items.Count; i++)
@@ -341,6 +359,44 @@ namespace Cklash
                     break;
                 }
             }
+        }
+
+        private void openURLToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (MessageList.SelectedIndices.Count != 1)
+            {
+                return;
+            }
+            var item = MessageList.SelectedItems[0];
+            var message = (SlackApiCache.MessageCacheInfo)item.Tag;
+
+            string text = message.Text;
+            if (text == null)
+            {
+                return;
+            }
+            Match match = Regex.Match(text, "http[s]?://[^ |]+");
+            if (!match.Success)
+            {
+                return;
+            }
+            string url = match.Value;
+            System.Diagnostics.Debug.WriteLine(url);
+            Process.Start(url);
+        }
+
+        private void detailToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (MessageList.SelectedIndices.Count != 1)
+            {
+                return;
+            }
+            var item = MessageList.SelectedItems[0];
+            var message = (SlackApiCache.MessageCacheInfo)item.Tag;
+
+            string url = "https://" + Slack.Team + ".slack.com/archives/" + message.ChannelDetail.Name + "/p" + message.Ts.Replace(".", "");
+            System.Diagnostics.Debug.WriteLine(url);
+            Process.Start(url);
         }
 
     }

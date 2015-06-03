@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Text;
 
 /// zlib License
 /// Copyright (c) 2015 Betarium
@@ -34,11 +35,33 @@ namespace Library
             public string Subtype { get; set; }
             public string User { get; set; }
             public string Username { get; set; }
+            public string BotId { get; set; }
             public string Text { get; set; }
             public string Ts { get; set; }
             public string IconsImage48 { get; set; }
+            public MessageIcon Icons { get; set; }
             public List<MessageAttachmentObject> Attachments { get; set; }
             public DateTime TsTimestamp { get; set; }
+
+            public virtual void CopyFrom(MessageInfo source)
+            {
+                Type = source.Type;
+                User = source.User;
+                BotId = source.BotId;
+                Username = source.Username;
+                Text = source.Text;
+                Ts = source.Ts;
+                TsTimestamp = source.TsTimestamp;
+                IconsImage48 = source.IconsImage48;
+                Icons = source.Icons;
+                Attachments = source.Attachments;
+            }
+        }
+
+        public class MessageIcon
+        {
+            public string Image48 { get; set; }
+            public string Image64 { get; set; }
         }
 
         public class MessageAttachmentObject
@@ -233,13 +256,22 @@ namespace Library
                     string ts = item.Entities["ts"].Value;
                     string user = item.Entities.ContainsKey("user") ? item.Entities["user"].Value : null;
                     string username = item.Entities.ContainsKey("username") ? item.Entities["username"].Value : null;
+                    string botId = item.Entities.ContainsKey("bot_id") ? item.Entities["bot_id"].Value : null;
                     string text = item.Entities.ContainsKey("text") ? item.Entities["text"].Value : null;
                     string image_48 = null;
+                    MessageIcon iconInfo = null;
                     if (item.Entities.ContainsKey("icons"))
                     {
-                        if (item.Entities["icons"].Entities.ContainsKey("image_48"))
+                        iconInfo = new MessageIcon();
+                        var iconsItem = item.Entities["icons"];
+                        if (iconsItem.Entities.ContainsKey("image_48"))
                         {
-                            image_48 = item.Entities["icons"].Entities["image_48"].Value;
+                            image_48 = iconsItem.Entities["image_48"].Value;
+                            iconInfo.Image48 = image_48;
+                        }
+                        if (iconsItem.Entities.ContainsKey("image_64"))
+                        {
+                            iconInfo.Image64 = iconsItem.Entities["image_64"].Value;
                         }
                     }
 
@@ -265,9 +297,11 @@ namespace Library
                     SlackApi.MessageInfo messageInfo = new SlackApi.MessageInfo();
                     messageInfo.User = user;
                     messageInfo.Username = username;
+                    messageInfo.BotId = botId;
                     messageInfo.Text = text;
                     messageInfo.Ts = ts;
                     messageInfo.IconsImage48 = image_48;
+                    messageInfo.Icons = iconInfo;
                     long tsticks = unixTimeTick + long.Parse(ts.Split('.')[0]) * 10000000;
                     messageInfo.TsTimestamp = new DateTime(tsticks);
                     messageInfo.TsTimestamp += System.TimeZoneInfo.Local.BaseUtcOffset;
@@ -280,74 +314,6 @@ namespace Library
                 return resultObj;
             }
 
-            public List<MessageInfo> HistoryOld(string channel)
-            {
-                List<MessageInfo> tempList = new List<MessageInfo>();
-
-                Dictionary<string, string> paramMap = new Dictionary<string, string>();
-                paramMap.Add("token", Slack.AccessToken);
-                paramMap.Add("channel", channel);
-
-                string result = Slack.CallApi("/api/channels.history", paramMap);
-                JsonParser.JsonEntity json = JsonParser.Parse(result);
-
-                long unixTimeTick = new DateTime(1970, 1, 1).Ticks;
-
-                foreach (var item in json.Entities["messages"].Items)
-                {
-                    if (item.Entities.ContainsKey("subtype") && item.Entities["subtype"].Value == "channel_join")
-                    {
-                        continue;
-                    }
-
-                    string ts = item.Entities["ts"].Value;
-                    string user = item.Entities.ContainsKey("user") ? item.Entities["user"].Value : null;
-                    string username = item.Entities.ContainsKey("username") ? item.Entities["username"].Value : null;
-                    string text = item.Entities.ContainsKey("text") ? item.Entities["text"].Value : null;
-                    string image_48 = null;
-                    if (item.Entities.ContainsKey("icons"))
-                    {
-                        if (item.Entities["icons"].Entities.ContainsKey("image_48"))
-                        {
-                            image_48 = item.Entities["icons"].Entities["image_48"].Value;
-                        }
-                    }
-
-                    List<MessageAttachmentObject> attachments = null;
-                    if (item.Entities.ContainsKey("attachments"))
-                    {
-                        attachments = new List<MessageAttachmentObject>();
-                        foreach (var item2 in item.Entities["attachments"].Items)
-                        {
-                            MessageAttachmentObject attatch = new MessageAttachmentObject();
-                            if (item2.Entities.ContainsKey("title"))
-                            {
-                                attatch.Title = item2.Entities["title"].Value;
-                            }
-                            if (item2.Entities.ContainsKey("text"))
-                            {
-                                attatch.Text = item2.Entities["text"].Value;
-                            }
-                            attachments.Add(attatch);
-                        }
-                    }
-
-                    SlackApi.MessageInfo messageInfo = new SlackApi.MessageInfo();
-                    messageInfo.User = user;
-                    messageInfo.Username = username;
-                    messageInfo.Text = text;
-                    messageInfo.Ts = ts;
-                    messageInfo.IconsImage48 = image_48;
-                    long tsticks = unixTimeTick + long.Parse(ts.Split('.')[0]) * 10000000;
-                    messageInfo.TsTimestamp = new DateTime(tsticks);
-                    messageInfo.TsTimestamp += System.TimeZoneInfo.Local.BaseUtcOffset;
-                    messageInfo.Attachments = attachments;
-
-                    tempList.Add(messageInfo);
-                }
-
-                return tempList;
-            }
         }
 
         public class ChatApi : BaseApi
@@ -364,6 +330,7 @@ namespace Library
                 paramMap.Add("channel", channel);
                 paramMap.Add("text", text);
                 paramMap.Add("as_user", asUser.ToString().ToLower());
+                paramMap.Add("link_names", "1");
 
                 string result = Slack.CallApi("/api/chat.postMessage", paramMap);
                 JsonParser.JsonEntity json = JsonParser.Parse(result);
@@ -535,7 +502,7 @@ namespace Library
 
         }
 
-        public string CallApi(string apiUrl, Dictionary<string, string> paramMap)
+        public string CallApi(string apiUrl, Dictionary<string, string> paramMap, bool getRequestFlag = true)
         {
             List<string> paramList = new List<string>();
             foreach (var param in paramMap)
@@ -544,9 +511,28 @@ namespace Library
             }
             string allParam = string.Join("&", paramList);
             Uri requestUri = new Uri(string.Format("{0}{1}?{2}", BASE_URL, apiUrl, allParam));
-            System.Diagnostics.Debug.WriteLine("slack request:" + requestUri);
+            if (getRequestFlag)
+            {
+                System.Diagnostics.Debug.WriteLine("slack request:" + requestUri);
+            }
+            else
+            {
+                requestUri = new Uri(string.Format("{0}{1}", BASE_URL, apiUrl));
+                System.Diagnostics.Debug.WriteLine("slack request:" + requestUri + "?" + allParam);
+            }
 
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestUri);
+            if (!getRequestFlag)
+            {
+                request.Method = "POST";
+                byte[] body = Encoding.UTF8.GetBytes(allParam);
+                request.ContentLength = body.Length;
+                using (var stream = request.GetRequestStream())
+                {
+                    stream.Write(body, 0, body.Length);
+                    stream.Flush();
+                }
+            }
 
             using (WebResponse response = request.GetResponse())
             {

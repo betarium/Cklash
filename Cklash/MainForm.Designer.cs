@@ -35,6 +35,8 @@
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.contextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.replyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.PostText = new System.Windows.Forms.TextBox();
             this.PostButton = new System.Windows.Forms.Button();
             this.reloadTimer = new System.Windows.Forms.Timer(this.components);
@@ -47,15 +49,15 @@
             this.slackHomeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showDirectMessageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.contextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.replyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openURLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.detailToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
-            this.contextMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // MessageList
@@ -96,20 +98,36 @@
             this.columnHeader4.Text = "Date";
             this.columnHeader4.Width = 130;
             // 
+            // contextMenu
+            // 
+            this.contextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.detailToolStripMenuItem,
+            this.replyToolStripMenuItem,
+            this.openURLToolStripMenuItem});
+            this.contextMenu.Name = "contextMenu";
+            this.contextMenu.Size = new System.Drawing.Size(153, 92);
+            // 
+            // replyToolStripMenuItem
+            // 
+            this.replyToolStripMenuItem.Name = "replyToolStripMenuItem";
+            this.replyToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.replyToolStripMenuItem.Text = "Reply";
+            this.replyToolStripMenuItem.Click += new System.EventHandler(this.replyToolStripMenuItem_Click);
+            // 
             // PostText
             // 
             this.PostText.Dock = System.Windows.Forms.DockStyle.Top;
             this.PostText.Location = new System.Drawing.Point(164, 3);
             this.PostText.Name = "PostText";
-            this.PostText.Size = new System.Drawing.Size(505, 19);
+            this.PostText.Size = new System.Drawing.Size(504, 19);
             this.PostText.TabIndex = 1;
             // 
             // PostButton
             // 
             this.PostButton.Dock = System.Windows.Forms.DockStyle.Top;
-            this.PostButton.Location = new System.Drawing.Point(675, 3);
+            this.PostButton.Location = new System.Drawing.Point(674, 3);
             this.PostButton.Name = "PostButton";
-            this.PostButton.Size = new System.Drawing.Size(106, 23);
+            this.PostButton.Size = new System.Drawing.Size(107, 23);
             this.PostButton.TabIndex = 2;
             this.PostButton.Text = "Post";
             this.PostButton.UseVisualStyleBackColor = true;
@@ -150,7 +168,7 @@
             this.tableLayoutPanel1.ColumnCount = 3;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 23.97661F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 76.02339F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 111F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 112F));
             this.tableLayoutPanel1.Controls.Add(this.PostText, 1, 0);
             this.tableLayoutPanel1.Controls.Add(this.PostButton, 2, 0);
             this.tableLayoutPanel1.Controls.Add(this.ChanellCombo, 0, 0);
@@ -213,19 +231,19 @@
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
             // 
-            // contextMenu
+            // openURLToolStripMenuItem
             // 
-            this.contextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.replyToolStripMenuItem});
-            this.contextMenu.Name = "contextMenu";
-            this.contextMenu.Size = new System.Drawing.Size(153, 48);
+            this.openURLToolStripMenuItem.Name = "openURLToolStripMenuItem";
+            this.openURLToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.openURLToolStripMenuItem.Text = "Open URL";
+            this.openURLToolStripMenuItem.Click += new System.EventHandler(this.openURLToolStripMenuItem_Click);
             // 
-            // replyToolStripMenuItem
+            // detailToolStripMenuItem
             // 
-            this.replyToolStripMenuItem.Name = "replyToolStripMenuItem";
-            this.replyToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.replyToolStripMenuItem.Text = "Reply";
-            this.replyToolStripMenuItem.Click += new System.EventHandler(this.replyToolStripMenuItem_Click);
+            this.detailToolStripMenuItem.Name = "detailToolStripMenuItem";
+            this.detailToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.detailToolStripMenuItem.Text = "Detail";
+            this.detailToolStripMenuItem.Click += new System.EventHandler(this.detailToolStripMenuItem_Click);
             // 
             // MainForm
             // 
@@ -241,6 +259,7 @@
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.Resize += new System.EventHandler(this.MainForm_Resize);
+            this.contextMenu.ResumeLayout(false);
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
@@ -249,7 +268,6 @@
             this.tableLayoutPanel1.PerformLayout();
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
-            this.contextMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -276,6 +294,8 @@
         private System.Windows.Forms.ToolStripMenuItem slackHomeToolStripMenuItem;
         private System.Windows.Forms.ContextMenuStrip contextMenu;
         private System.Windows.Forms.ToolStripMenuItem replyToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem openURLToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem detailToolStripMenuItem;
     }
 }
 
