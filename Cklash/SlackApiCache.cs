@@ -214,10 +214,11 @@ namespace Cklash
             return info2;
         }
 
-        public int LoadDirectMessage()
+        public List<SlackApi.MessageInfo> LoadDirectMessage()
         {
             List<SlackApi.IMObject> imlist = Im.List();
             List<SlackApi.MessageInfo> dmlist = new List<SlackApi.MessageInfo>();
+            List<SlackApi.MessageInfo> dmlist2 = new List<SlackApi.MessageInfo>();
             foreach (var imobj in imlist)
             {
                 List<SlackApi.MessageInfo> list = Im.History(imobj.Id);
@@ -233,8 +234,9 @@ namespace Cklash
                 }
                 directMessageMap.Add(item.Ts, item);
                 newCount++;
+                dmlist2.Add(item);
             }
-            return newCount;
+            return dmlist2;
         }
 
         public List<SlackApi.ChannelInfo> ReloadChannel()

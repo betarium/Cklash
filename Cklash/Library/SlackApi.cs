@@ -462,6 +462,11 @@ namespace Library
 
                 long unixTimeTick = new DateTime(1970, 1, 1).Ticks;
 
+                if (json.Entities["ok"].Value != "true")
+                {
+                    throw new ApplicationException("Im.History failed.");
+                }
+
                 List<MessageInfo> tempList = new List<MessageInfo>();
                 foreach (var item in json.Entities["messages"].Items)
                 {

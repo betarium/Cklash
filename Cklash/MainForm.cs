@@ -33,6 +33,7 @@ namespace Cklash
 
             lastMessageTs = Properties.Settings.Default.lastMessageTs;
             lastReplyTs = Properties.Settings.Default.lastReplyTs;
+            lastDmTs = Properties.Settings.Default.lastDmTs;
 
             Slack.ClientId = Properties.Settings.Default.ClientId;
             Slack.ClientSecret = Properties.Settings.Default.ClientSecret;
@@ -100,7 +101,7 @@ namespace Cklash
             ChannelList.AddRange(channels);
 
             Slack.LoadUsers();
-            Slack.LoadDirectMessage();
+            //Slack.LoadDirectMessage();
 
             Invoke(new EventHandler(StartupRefreshCallback));
 
@@ -116,10 +117,14 @@ namespace Cklash
 
             ThreadPool.QueueUserWorkItem(ReloadCallback);
             reloadTimer.Start();
+            reloadDmTimer.Start();
         }
 
         protected List<SlackApiCache.MessageCacheInfo> reloadList = new List<SlackApiCache.MessageCacheInfo>();
+        protected List<SlackApiCache.MessageInfo> dmList = new List<SlackApiCache.MessageInfo>();
         protected int directMessageCount;
+        protected string lastDmTs;
+        protected bool skipBaloon;
 
         protected void ReloadCallback(Object threadContext)
         {
@@ -129,20 +134,70 @@ namespace Cklash
             }
 
             //UseWaitCursor = true;
-            directMessageCount = Slack.LoadDirectMessage();
+            //try
+            //{
+            //    directMessageCount = Slack.LoadDirectMessage();
+            //}
+            //catch (WebException)
+            //{
+            //    MessageBox.Show("ダイレクトメッセージの取得でエラーが発生しました。");
+            //    return;
+            //}
 
             List<SlackApiCache.MessageCacheInfo> tempList = new List<SlackApiCache.MessageCacheInfo>();
 
-            tempList = Slack.LoadChannelHistory();
+            try
+            {
+                tempList = Slack.LoadChannelHistory();
+            }
+            catch (WebException ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+                MessageBox.Show("メッセージの取得でエラーが発生しました。");
+                return;
+            }
 
             lock (reloadList)
             {
                 reloadList.AddRange(tempList);
             }
 
-            Invoke(new EventHandler(ReloadRefreshCallback));
+            skipBaloon = true;
 
-            //UseWaitCursor = false;
+            Invoke(new EventHandler(ReloadRefreshCallback));
+        }
+
+        protected void ReloadDmCallback(Object threadContext)
+        {
+            if (!Slack.IsLogin)
+            {
+                return;
+            }
+
+            try
+            {
+                var list = Slack.LoadDirectMessage();
+                directMessageCount = list.Count;
+                lock (dmList)
+                {
+                    dmList.Clear();
+                    dmList.AddRange(list);
+                }
+            }
+            catch (WebException ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+                MessageBox.Show("ダイレクトメッセージの取得でエラーが発生しました。");
+                return;
+            }
+            catch (ApplicationException aex)
+            {
+                System.Diagnostics.Debug.WriteLine(aex);
+                MessageBox.Show("ダイレクトメッセージの取得でエラーが発生しました。");
+                return;
+            }
+
+            Invoke(new EventHandler(ReloadDmCallback));
         }
 
         protected string lastMessageTs;
@@ -193,29 +248,38 @@ namespace Cklash
                 if (messageInfo.Text != null && messageInfo.Text.IndexOf("<@" + Slack.UserId) >= 0)
                 {
                     replyMessage = messageInfo;
+                    row.BackColor = Color.Violet;
+                }
+                if (messageInfo.UserDetail != null && messageInfo.UserDetail.Id == Slack.UserId)
+                {
+                    row.BackColor = Color.Aqua;
                 }
             }
 
             UseWaitCursor = false;
 
-            if (directMessageCount > 0)
+            //if (directMessageCount > 0)
+            //{
+            //    Visible = true;
+            //    directMessageCount = 0;
+            //    Activate();
+            //    trayIcon.ShowBalloonTip(30000, Application.ProductName, "ダイレクトメッセージがあります。", ToolTipIcon.Warning);
+            //    MessageBox.Show("ダイレクトメッセージがあります。");
+            //}
+            if (!skipBaloon)
             {
-                Visible = true;
-                directMessageCount = 0;
-                Activate();
-                trayIcon.ShowBalloonTip(30000, Application.ProductName, "ダイレクトメッセージがあります。", ToolTipIcon.Warning);
-                MessageBox.Show("ダイレクトメッセージがあります。");
+                if (replyMessage != null && lastReplyTs != replyMessage.Ts)
+                {
+                    trayIcon.ShowBalloonTip(30000, Application.ProductName, replyMessage.DisplayRealName + "\r\n" + replyMessage.DisplayText, ToolTipIcon.Warning);
+                    lastReplyTs = replyMessage.Ts;
+                }
+                else if (tempList.Count > 0 && lastMessageTs != tempList[0].Ts)
+                {
+                    trayIcon.ShowBalloonTip(30000, Application.ProductName, tempList[0].DisplayRealName + "\r\n" + tempList[0].DisplayText, ToolTipIcon.Info);
+                    lastMessageTs = tempList[0].Ts;
+                }
             }
-            else if (replyMessage != null && lastReplyTs != replyMessage.Ts)
-            {
-                trayIcon.ShowBalloonTip(30000, Application.ProductName, replyMessage.DisplayRealName + "\r\n" + replyMessage.DisplayText, ToolTipIcon.Warning);
-                lastReplyTs = replyMessage.Ts;
-            }
-            else if (tempList.Count > 0 && lastMessageTs != tempList[0].Ts)
-            {
-                trayIcon.ShowBalloonTip(30000, Application.ProductName, tempList[0].DisplayRealName + "\r\n" + tempList[0].DisplayText, ToolTipIcon.Info);
-                lastMessageTs = tempList[0].Ts;
-            }
+            skipBaloon = false;
 
             if (tempList.Count > 0)
             {
@@ -225,6 +289,29 @@ namespace Cklash
                 }
             }
 
+        }
+
+        public void ReloadDmCallback(object sender, System.EventArgs e)
+        {
+            if (directMessageCount > 0)
+            {
+                Visible = true;
+                directMessageCount = 0;
+                List<string> tsList = new List<string>();
+                foreach (var item in dmList)
+                {
+                    tsList.Add(item.Ts);
+                }
+                tsList.Sort();
+                string lastTs = tsList.Last();
+                if (lastDmTs != lastTs)
+                {
+                    lastDmTs = lastTs;
+                    Activate();
+                    trayIcon.ShowBalloonTip(30000, Application.ProductName, "ダイレクトメッセージがあります。", ToolTipIcon.Warning);
+                    MessageBox.Show("ダイレクトメッセージがあります。");
+                }
+            }
         }
 
         public bool Login()
@@ -328,6 +415,7 @@ namespace Cklash
             Slack.SaveMessageCache();
             Properties.Settings.Default.lastMessageTs = lastMessageTs;
             Properties.Settings.Default.lastReplyTs = lastReplyTs;
+            Properties.Settings.Default.lastDmTs = lastDmTs;
             Properties.Settings.Default.Save();
         }
 
@@ -397,6 +485,11 @@ namespace Cklash
             string url = "https://" + Slack.Team + ".slack.com/archives/" + message.ChannelDetail.Name + "/p" + message.Ts.Replace(".", "");
             System.Diagnostics.Debug.WriteLine(url);
             Process.Start(url);
+        }
+
+        private void reloadDmTimer_Tick(object sender, EventArgs e)
+        {
+            ThreadPool.QueueUserWorkItem(ReloadDmCallback);
         }
 
     }

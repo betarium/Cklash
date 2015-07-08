@@ -185,7 +185,12 @@ namespace Library
                             throw new JsonException("Bad format in text", text);
                         }
 
-                        if (text[index + 1] == '\"')
+                        if (text[index + 1] == '\\')
+                        {
+                            textValue += "\\";
+                            index += 2;
+                        }
+                        else if (text[index + 1] == '\"')
                         {
                             textValue += "\"";
                             index += 2;
